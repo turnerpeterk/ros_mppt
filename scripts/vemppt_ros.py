@@ -21,20 +21,29 @@ import serial
 import logging
 from ros_mppt.msg import mppt
 
-logging.basicConfig(level=logging.INFO, filename='ros_mppt.log', filemode='a', format='[%(asctime)s - %(levelname)s]: %(message)s', datefmt='%d-%b-%y %H:%M:%S')
-logging.info('Initializing ros_mppt package...')
+logging.basicConfig(level=logging.INFO, filename='ros_batt.log', filemode='a', format='[%(asctime)s - %(levelname)s]: %(message)s', datefmt='%d-%b-%y %H:%M:%S')
+logging.info('Initializing ros_batt package...')
 
 def sender():
-    pub = rospy.Publisher('mppt_channel', mppt, queue_size=10)
-    rospy.init_node('ros_mppt', anonymous=True)
+    pub = rospy.Publisher('batt_channel', mppt, queue_size=10)
+    rospy.init_node('ros_batt', anonymous=True)
     r = rospy.Rate(10)
     msg = mppt()
+
+float64 v_bat
+float64 i_bat
+float64 p_bat
+float64 ce_bat
+float64 soc_bat
+float64 ttg_bat
 
     #Predefined values of msg
     msg.v_bat = -1
     msg.i_bat = -1
-    msg.v_pv = -1
-    msg.p_pv = -1
+    msg.p_bat = -1
+    msg.ce_bat= -1
+    msg.soc_bat = -1
+    msg.ttg_bat = -1
 
     while not rospy.is_shutdown():
 
@@ -42,26 +51,36 @@ def sender():
             ve_read = ser.readline().decode("utf-8")
         except: logging.warning('Skipping decoding from ve_read line: ' + ve_read)
 
-        if "V" in ve_read and "P" not in ve_read:
+        if "V" in ve_read:
             try:
                 ve_read = ve_read.split("\t")
                 msg.v_bat = float(ve_read[1]) * 0.001
-            except Exception as e: logging.error('Exception ocurred in V', exc_info=True)
+            except Exception as e: logging.error('Exception occurred in V', exc_info=True)
         elif "I" in ve_read and "P" not in ve_read:
             try:
                 ve_read = ve_read.split("\t")
                 msg.i_bat = float(ve_read[1]) * 0.001
-            except Exception as e: logging.error('Exception ocurred in I', exc_info=True)
-        elif "VPV" in ve_read:
+            except Exception as e: logging.error('Exception occurred in I', exc_info=True)
+        elif "P" in ve_read:
             try
                 ve_read = ve_read.split("\t") * 0.001
                 msg.v_pv = float(ve_read[1])
-            except Exception as e: logging.error('Exception ocurred in VPV', exc_info=True)
-        elif "PPV" in ve_read:
+            except Exception as e: logging.error('Exception occurred in P', exc_info=True)
+        elif "CE" in ve_read:
             try:
                 ve_read = ve_read.split("\t")
                 msg.p_pv = float(ve_read[1])
-            except Exception as e: logging.error('Exception ocurred in PPV', exc_info=True)
+            except Exception as e: logging.error('Exception occurred in CE', exc_info=True)
+        elif "SOC" in ve_read:
+            try:
+                ve_read = ve_read.split("\t")
+                msg.p_pv = float(ve_read[1])
+            except Exception as e: logging.error('Exception occurred in SOC', exc_info=True)
+        elif "TTG" in ve_read:
+            try:
+                ve_read = ve_read.split("\t")
+                msg.p_pv = float(ve_read[1])
+            except Exception as e: logging.error('Exception occurred in TTG', exc_info=True)
 
         rospy.loginfo(msg)
         pub.publish(msg)
